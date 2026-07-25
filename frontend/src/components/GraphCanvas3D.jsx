@@ -12,8 +12,8 @@ export default function GraphCanvas3D() {
   const loadGraph3D = async () => {
     setLoading(true);
     try {
-      const nodes = await fetchNodes({ limit: 1000 });
-      const edges = await fetchEdges({ limit: 2000 });
+      const nodes = await fetchNodes({ limit: 500 });
+      const edges = await fetchEdges({ limit: 1000 });
 
       // Build node ID set to filter out orphaned edges with non-existent source or target
       const validNodeIds = new Set(nodes.map(n => n.id));

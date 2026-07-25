@@ -11,7 +11,7 @@ router = APIRouter()
 @router.get("/nodes", response_model=List[NodeResponse])
 def get_graph_nodes(
     entity_type: Optional[str] = Query(None),
-    limit: int = Query(100, le=500),
+    limit: int = Query(500, le=5000),
     db: Session = Depends(get_cockroach_db)
 ):
     query = db.query(Node)
@@ -24,7 +24,7 @@ def get_graph_nodes(
 def get_graph_edges(
     predicate: Optional[str] = Query(None),
     min_confidence: float = Query(0.0, ge=0.0, le=1.0),
-    limit: int = Query(200, le=1000),
+    limit: int = Query(1000, le=10000),
     db: Session = Depends(get_cockroach_db)
 ):
     query = db.query(Edge).filter(Edge.confidence_score >= min_confidence)
@@ -58,8 +58,7 @@ def discover_causal_path(
                 predicate, 
                 confidence_score, 
                 1 AS depth, 
-                ARRAY[source_node_id::text, target_node_id::text] AS path_nodes,
-                confidence_score AS path_confidence
+                ARRAY[source_node_id::text, target_node_id::text] AS path_nodes
             FROM edges
             WHERE source_node_id = :start_id
 
@@ -71,38 +70,29 @@ def discover_causal_path(
                 e.predicate, 
                 e.confidence_score, 
                 cp.depth + 1, 
-                cp.path_nodes || e.target_node_id::text,
-                cp.path_confidence * e.confidence_score
+                cp.path_nodes || e.target_node_id::text
             FROM edges e
             JOIN causal_path cp ON e.source_node_id = cp.target_node_id
-            WHERE cp.depth < :max_depth
-              -- Cycle Detection: Prevent revisiting already visited nodes in this path
-              AND NOT (e.target_node_id::text = ANY(cp.path_nodes))
+            WHERE cp.depth < :max_hops
+            AND NOT (e.target_node_id::text = ANY(cp.path_nodes))
         )
-        SELECT path_nodes, path_confidence, depth
-        FROM causal_path
-        WHERE target_node_id = :target_id
-        ORDER BY path_confidence DESC
-        LIMIT 10;
+        SELECT * FROM causal_path WHERE target_node_id = :target_id;
     """)
 
-    results = db.execute(
-        sql_query, 
-        {
-            "start_id": start_node_id, 
-            "target_id": target_node_id, 
-            "max_depth": max_hops
-        }
-    ).fetchall()
+    result = db.execute(sql_query, {
+        "start_id": start_node.id,
+        "target_id": target_node.id,
+        "max_hops": max_hops
+    }).fetchall()
 
     paths = []
-    for r in results:
+    for row in result:
         paths.append(PathDiscoveryResponse(
-            start_entity=start_node.canonical_name,
-            target_entity=target_node.canonical_name,
-            path_node_ids=list(r.path_nodes),
-            hops=r.depth,
-            confidence_score=round(float(r.path_confidence), 2)
+            source_node_id=str(row.source_node_id),
+            target_node_id=str(row.target_node_id),
+            predicate=row.predicate,
+            confidence_score=row.confidence_score,
+            depth=row.depth
         ))
 
     return paths

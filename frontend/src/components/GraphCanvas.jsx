@@ -41,8 +41,8 @@ export default function GraphCanvas({ onOpenCopilot, onRunSimulation }) {
     if (!containerRef.current) return;
     setLoading(true);
     try {
-      const nodesData = await fetchNodes({ limit: 1000 });
-      const edgesData = await fetchEdges({ limit: 2000 });
+      const nodesData = await fetchNodes({ limit: 500 });
+      const edgesData = await fetchEdges({ limit: 1000 });
 
       // Build node ID set to filter out orphaned edges with non-existent source or target
       const validNodeIds = new Set(nodesData.map(n => n.id));
