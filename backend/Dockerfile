@@ -11,9 +11,10 @@ COPY pyproject.toml .env* ./
 # Install python dependencies
 RUN uv pip install --system fastapi uvicorn[standard] sqlalchemy sqlalchemy-cockroachdb alembic psycopg2-binary openai redis pypdf python-dotenv pyjwt passlib bcrypt pydantic pydantic-settings python-multipart
 
-# Copy backend application source
+# Copy backend application source and alembic migrations
 COPY app ./app
-COPY scripts ./scripts
+COPY alembic ./alembic
+COPY alembic.ini ./alembic.ini
 
 EXPOSE 8000
 
