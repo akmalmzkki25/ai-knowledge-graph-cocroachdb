@@ -41,8 +41,14 @@ export default function GraphCanvas({ onOpenCopilot, onRunSimulation }) {
     if (!containerRef.current) return;
     setLoading(true);
     try {
-      const nodesData = await fetchNodes({ limit: 100 });
-      const edgesData = await fetchEdges({ limit: 150 });
+      const nodesData = await fetchNodes({ limit: 1000 });
+      const edgesData = await fetchEdges({ limit: 2000 });
+
+      // Build node ID set to filter out orphaned edges with non-existent source or target
+      const validNodeIds = new Set(nodesData.map(n => n.id));
+      const validEdges = edgesData.filter(
+        e => validNodeIds.has(e.source_node_id) && validNodeIds.has(e.target_node_id)
+      );
 
       const elements = [
         ...nodesData.map(n => ({
@@ -52,7 +58,7 @@ export default function GraphCanvas({ onOpenCopilot, onRunSimulation }) {
             type: n.entity_type
           }
         })),
-        ...edgesData.map(e => ({
+        ...validEdges.map(e => ({
           data: {
             id: e.id,
             source: e.source_node_id,

@@ -1,19 +1,25 @@
 import React, { useEffect, useRef, useState } from 'react';
 import ForceGraph3D from '3d-force-graph';
-import { RefreshCw, RotateCcw, Box } from 'lucide-react';
+import { FaCube, FaRotate, FaXmark } from 'react-icons/fa6';
 import { fetchNodes, fetchEdges } from '../services/api';
 
 export default function GraphCanvas3D() {
   const containerRef = useRef(null);
   const fgRef = useRef(null);
-  const [loading, setLoading] = useState(false);
   const [selectedNode, setSelectedNode] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  const loadGraphData = async () => {
+  const loadGraph3D = async () => {
     setLoading(true);
     try {
-      const nodes = await fetchNodes({ limit: 80 });
-      const edges = await fetchEdges({ limit: 100 });
+      const nodes = await fetchNodes({ limit: 1000 });
+      const edges = await fetchEdges({ limit: 2000 });
+
+      // Build node ID set to filter out orphaned edges with non-existent source or target
+      const validNodeIds = new Set(nodes.map(n => n.id));
+      const validEdges = edges.filter(
+        e => validNodeIds.has(e.source_node_id) && validNodeIds.has(e.target_node_id)
+      );
 
       const gData = {
         nodes: nodes.map(n => ({
@@ -22,7 +28,7 @@ export default function GraphCanvas3D() {
           type: n.entity_type,
           val: 8
         })),
-        links: edges.map(e => ({
+        links: validEdges.map(e => ({
           source: e.source_node_id,
           target: e.target_node_id,
           predicate: e.predicate,
@@ -49,10 +55,9 @@ export default function GraphCanvas3D() {
             .linkDirectionalParticles(2)
             .linkDirectionalParticleSpeed(0.005)
             .linkDirectionalParticleWidth(2.5)
-            .linkLabel(link => `<div style="color: #cbd5e1; background: #0f172a; padding: 2px 6px; border-radius: 4px; font-size: 10px;">${link.predicate} (${int(link.confidence * 100)}%)</div>`)
+            .linkLabel(link => `<div style="color: #cbd5e1; background: #0f172a; padding: 2px 6px; border-radius: 4px; font-size: 10px;">${link.predicate} (${Math.round(link.confidence * 100)}%)</div>`)
             .onNodeClick(node => {
               setSelectedNode(node);
-              // Aim camera at node
               const distance = 120;
               const distRatio = 1 + distance / Math.hypot(node.x, node.y, node.z);
               Graph.cameraPosition(
@@ -75,36 +80,36 @@ export default function GraphCanvas3D() {
   };
 
   useEffect(() => {
-    loadGraphData();
+    loadGraph3D();
+    return () => {
+      if (fgRef.current) {
+        fgRef.current._destructor && fgRef.current._destructor();
+        fgRef.current = null;
+      }
+    };
   }, []);
 
   return (
-    <div className="relative w-full h-[calc(100vh-65px)] bg-slate-950 overflow-hidden">
-      <div ref={containerRef} className="w-full h-full" />
-
-      {/* Floating Controls */}
-      <div className="absolute top-4 left-4 z-10 glass-panel p-3 rounded-xl border border-slate-800 space-y-2 text-xs">
-        <div className="flex items-center justify-between gap-4">
-          <span className="font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
-            <Box className="w-4 h-4" /> 3D Sci-Fi Universe Canvas
-          </span>
-          <button
-            onClick={loadGraphData}
-            disabled={loading}
-            className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          </button>
-        </div>
-        <p className="text-slate-400 text-[11px]">Rotate camera with left click drag, pan with right click drag, scroll to zoom.</p>
+    <div className="relative w-full h-[calc(100vh-120px)] bg-slate-950 overflow-hidden">
+      <div className="absolute top-4 left-4 z-20 glass-panel p-3 rounded-xl border border-slate-800 flex items-center space-x-3 text-xs bg-slate-950/80">
+        <FaCube className="w-4 h-4 text-emerald-400" />
+        <span className="font-bold text-slate-200">3D Sci-Fi Universe Visualizer</span>
+        <button onClick={loadGraph3D} className="p-1 text-slate-400 hover:text-slate-200">
+          <FaRotate className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+        </button>
       </div>
 
-      {/* Selected Node Details */}
+      <div ref={containerRef} className="w-full h-full" />
+
       {selectedNode && (
-        <div className="absolute bottom-6 left-6 z-10 glass-panel p-4 rounded-xl border border-indigo-500/40 text-xs w-72 space-y-1">
-          <div className="font-bold text-slate-100 text-sm">{selectedNode.name}</div>
-          <div className="text-indigo-400">Type: {selectedNode.type}</div>
-          <div className="text-slate-500 text-[10px]">3D Coords: ({Math.round(selectedNode.x)}, {Math.round(selectedNode.y)}, {Math.round(selectedNode.z)})</div>
+        <div className="absolute bottom-6 right-6 z-20 glass-panel p-4 rounded-2xl border border-indigo-500/40 w-80 space-y-2 text-xs bg-slate-950/90 shadow-2xl">
+          <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+            <span className="font-bold text-slate-100">{selectedNode.name}</span>
+            <button onClick={() => setSelectedNode(null)} className="p-1 text-slate-400 hover:text-slate-200">
+              <FaXmark className="w-3.5 h-3.5" />
+            </button>
+          </div>
+          <div className="text-indigo-400 font-medium">Entity Type: {selectedNode.type}</div>
         </div>
       )}
     </div>
