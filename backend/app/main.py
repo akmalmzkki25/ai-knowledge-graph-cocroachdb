@@ -1,10 +1,12 @@
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from alembic.config import Config
+from alembic import command
 from app.core.config import settings
 from app.api.v1.router import api_router
-from app.db.session import cockroach_engine, postgres_engine, Base, CockroachSessionLocal
+from app.db.session import CockroachSessionLocal
 from app.core.security import seed_default_superadmin
-from scripts.add_user_id_columns import add_user_id_columns
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -24,25 +26,29 @@ app.add_middleware(
 
 @app.on_event("startup")
 def startup_db_init():
-    """Auto-create tables, apply user_id migrations, and seed default superadmin on startup"""
-    print("🚀 Auto-initializing database schemas and superadmin account...")
+    """Run Alembic migrations as the Single Source of Truth for DB schema on startup"""
+    print("🚀 Running Alembic migrations (upgrade head)...")
     try:
-        # Create all tables on both CockroachDB and PostgreSQL
-        Base.metadata.create_all(bind=cockroach_engine)
-        Base.metadata.create_all(bind=postgres_engine)
+        # Locate alembic.ini from backend directory
+        backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        ini_path = os.path.join(backend_dir, "alembic.ini")
         
-        # Ensure user_id columns exist on pre-existing tables
-        add_user_id_columns()
-        
+        if os.path.exists(ini_path):
+            alembic_cfg = Config(ini_path)
+            command.upgrade(alembic_cfg, "head")
+            print("✅ Alembic schema migration (upgrade head) successful!")
+        else:
+            print(f"⚠️ alembic.ini not found at {ini_path}")
+            
         # Auto-seed default superadmin user
         db = CockroachSessionLocal()
         try:
             superadmin = seed_default_superadmin(db)
-            print(f"✅ Auto-initialization complete! Default Superadmin: '{superadmin.username}'")
+            print(f"✅ Default Superadmin verified: '{superadmin.username}'")
         finally:
             db.close()
     except Exception as e:
-        print(f"⚠️ Startup Database Initialization notice: {e}")
+        print(f"⚠️ Startup Alembic Migration notice: {e}")
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
