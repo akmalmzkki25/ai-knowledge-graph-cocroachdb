@@ -37,11 +37,11 @@ export default function Navbar({
   onDataReset
 }) {
   const [openSubMenu, setOpenSubMenu] = useState(null); // 'visualizers' | 'analytics' | 'user' | null
-  const subMenuRef = useRef(null);
+  const navbarRef = useRef(null);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (subMenuRef.current && !subMenuRef.current.contains(event.target)) {
+      if (navbarRef.current && !navbarRef.current.contains(event.target)) {
         setOpenSubMenu(null);
       }
     };
@@ -72,7 +72,7 @@ export default function Navbar({
   const isAnalyticsActive = ['hypotheses', 'simulation', 'lint', 'compare'].includes(activeTab);
 
   return (
-    <header className="glass-panel sticky top-0 z-40 px-5 py-2 border-b border-slate-800/80 flex items-center justify-between shadow-xl bg-slate-950/90 backdrop-blur-xl h-14">
+    <header ref={navbarRef} className="glass-panel sticky top-0 z-50 px-5 py-2 border-b border-slate-800/80 flex items-center justify-between shadow-xl bg-slate-950/95 backdrop-blur-xl h-14">
       {/* Left: Clean Brand Logo */}
       <div className="flex items-center space-x-2.5">
         <div className="p-2 bg-indigo-600/20 border border-indigo-500/40 rounded-xl text-indigo-400">
@@ -87,10 +87,11 @@ export default function Navbar({
       </div>
 
       {/* Center: Single-Line Dropdown Navigation */}
-      <nav ref={subMenuRef} className="flex items-center space-x-1.5">
+      <nav className="flex items-center space-x-1.5">
         {/* Dropdown 1: Visualizers */}
         <div className="relative">
           <button
+            type="button"
             onClick={() => setOpenSubMenu(openSubMenu === 'visualizers' ? null : 'visualizers')}
             className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition ${
               isVisualizerActive
@@ -106,8 +107,9 @@ export default function Navbar({
           </button>
 
           {openSubMenu === 'visualizers' && (
-            <div className="absolute top-full left-0 mt-2 w-52 glass-panel border border-slate-800 rounded-2xl shadow-2xl p-1.5 z-50 space-y-1 bg-slate-950/95 backdrop-blur-xl">
+            <div className="absolute top-full left-0 mt-2 w-52 glass-panel border border-slate-800 rounded-2xl shadow-2xl p-1.5 z-[100] space-y-1 bg-slate-950 text-xs">
               <button
+                type="button"
                 onClick={() => handleSelectTab('graph')}
                 className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-medium transition ${
                   activeTab === 'graph' ? 'bg-indigo-600/40 text-indigo-200' : 'text-slate-300 hover:bg-slate-900'
@@ -118,6 +120,7 @@ export default function Navbar({
               </button>
 
               <button
+                type="button"
                 onClick={() => handleSelectTab('graph3d')}
                 className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-medium transition ${
                   activeTab === 'graph3d' ? 'bg-indigo-600/40 text-indigo-200' : 'text-slate-300 hover:bg-slate-900'
@@ -128,6 +131,7 @@ export default function Navbar({
               </button>
 
               <button
+                type="button"
                 onClick={() => handleSelectTab('matrix')}
                 className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-medium transition ${
                   activeTab === 'matrix' ? 'bg-indigo-600/40 text-indigo-200' : 'text-slate-300 hover:bg-slate-900'
@@ -143,6 +147,7 @@ export default function Navbar({
         {/* Dropdown 2: Analytics & AI */}
         <div className="relative">
           <button
+            type="button"
             onClick={() => setOpenSubMenu(openSubMenu === 'analytics' ? null : 'analytics')}
             className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition ${
               isAnalyticsActive
@@ -158,8 +163,9 @@ export default function Navbar({
           </button>
 
           {openSubMenu === 'analytics' && (
-            <div className="absolute top-full left-0 mt-2 w-56 glass-panel border border-slate-800 rounded-2xl shadow-2xl p-1.5 z-50 space-y-1 bg-slate-950/95 backdrop-blur-xl">
+            <div className="absolute top-full left-0 mt-2 w-56 glass-panel border border-slate-800 rounded-2xl shadow-2xl p-1.5 z-[100] space-y-1 bg-slate-950 text-xs">
               <button
+                type="button"
                 onClick={() => handleSelectTab('hypotheses')}
                 className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-medium transition ${
                   activeTab === 'hypotheses' ? 'bg-purple-600/40 text-purple-200' : 'text-slate-300 hover:bg-slate-900'
@@ -170,6 +176,7 @@ export default function Navbar({
               </button>
 
               <button
+                type="button"
                 onClick={() => handleSelectTab('compare')}
                 className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-medium transition ${
                   activeTab === 'compare' ? 'bg-purple-600/40 text-purple-200' : 'text-slate-300 hover:bg-slate-900'
@@ -180,6 +187,7 @@ export default function Navbar({
               </button>
 
               <button
+                type="button"
                 onClick={() => handleSelectTab('simulation')}
                 className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-medium transition ${
                   activeTab === 'simulation' ? 'bg-purple-600/40 text-purple-200' : 'text-slate-300 hover:bg-slate-900'
@@ -190,6 +198,7 @@ export default function Navbar({
               </button>
 
               <button
+                type="button"
                 onClick={() => handleSelectTab('lint')}
                 className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-medium transition ${
                   activeTab === 'lint' ? 'bg-purple-600/40 text-purple-200' : 'text-slate-300 hover:bg-slate-900'
@@ -204,6 +213,7 @@ export default function Navbar({
 
         {/* Path Finder Toggle */}
         <button
+          type="button"
           onClick={() => setShowPathWorkbench(!showPathWorkbench)}
           className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition ${
             showPathWorkbench
@@ -220,6 +230,7 @@ export default function Navbar({
       <div className="flex items-center space-x-2">
         {/* Copilot */}
         <button
+          type="button"
           onClick={onToggleCopilot}
           className="glass-button flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-amber-300 bg-amber-600/20 border-amber-500/40 hover:scale-105 transition whitespace-nowrap"
           title="Open AI Copilot"
@@ -230,6 +241,7 @@ export default function Navbar({
 
         {/* Primary Action: + Ingest */}
         <button
+          type="button"
           onClick={onOpenIngestModal}
           className="glass-button flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-indigo-600/40 border border-indigo-500/50 hover:scale-105 transition whitespace-nowrap shadow-sm shadow-indigo-500/20"
         >
@@ -240,6 +252,7 @@ export default function Navbar({
         {/* User Account & Superadmin Actions Menu Dropdown */}
         <div className="relative">
           <button
+            type="button"
             onClick={() => setOpenSubMenu(openSubMenu === 'user' ? null : 'user')}
             className="flex items-center space-x-2 px-2.5 py-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 transition text-xs"
           >
@@ -251,7 +264,7 @@ export default function Navbar({
           </button>
 
           {openSubMenu === 'user' && (
-            <div className="absolute top-full right-0 mt-2 w-60 glass-panel border border-slate-800 rounded-2xl shadow-2xl p-2 z-50 space-y-1 bg-slate-950/95 backdrop-blur-xl text-xs">
+            <div className="absolute top-full right-0 mt-2 w-64 glass-panel border border-slate-800/90 rounded-2xl shadow-2xl p-2 z-[100] space-y-1 bg-slate-950 text-xs">
               <div className="p-2 border-b border-slate-800 space-y-0.5">
                 <div className="font-bold text-slate-200">{currentUser?.username}</div>
                 <div className="text-[10px] text-indigo-400 font-bold uppercase">{currentUser?.role}</div>
@@ -268,6 +281,7 @@ export default function Navbar({
               {/* User Management Studio (Moved to Superadmin Dropdown) */}
               {currentUser?.role === 'superadmin' && (
                 <button
+                  type="button"
                   onClick={() => handleSelectTab('users')}
                   className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl font-medium transition text-left ${
                     activeTab === 'users' ? 'bg-amber-600/40 text-amber-200 font-bold' : 'text-amber-300 hover:bg-slate-900'
@@ -280,9 +294,10 @@ export default function Navbar({
 
               {/* Manage & Delete Ingested Documents */}
               <button
+                type="button"
                 onClick={() => {
-                  onOpenManageSourcesModal && onOpenManageSourcesModal();
                   setOpenSubMenu(null);
+                  if (onOpenManageSourcesModal) onOpenManageSourcesModal();
                 }}
                 className="w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl text-slate-300 hover:bg-slate-900 transition text-left"
               >
@@ -291,9 +306,10 @@ export default function Navbar({
               </button>
 
               <button
+                type="button"
                 onClick={() => {
-                  onOpenReportModal();
                   setOpenSubMenu(null);
+                  onOpenReportModal();
                 }}
                 className="w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl text-slate-300 hover:bg-slate-900 transition text-left"
               >
@@ -302,9 +318,10 @@ export default function Navbar({
               </button>
 
               <button
+                type="button"
                 onClick={() => {
-                  onOpenExportModal();
                   setOpenSubMenu(null);
+                  onOpenExportModal();
                 }}
                 className="w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl text-slate-300 hover:bg-slate-900 transition text-left"
               >
@@ -316,6 +333,7 @@ export default function Navbar({
               {currentUser?.role === 'superadmin' && (
                 <div className="border-t border-slate-800 pt-1">
                   <button
+                    type="button"
                     onClick={handleResetData}
                     className="w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl text-red-400 hover:bg-red-950/40 transition text-left font-bold"
                   >
@@ -327,9 +345,10 @@ export default function Navbar({
 
               <div className="border-t border-slate-800 pt-1">
                 <button
+                  type="button"
                   onClick={() => {
-                    onLogout();
                     setOpenSubMenu(null);
+                    onLogout();
                   }}
                   className="w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl text-slate-400 hover:bg-slate-900 transition text-left font-semibold"
                 >
