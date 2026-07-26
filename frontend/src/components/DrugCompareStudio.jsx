@@ -12,12 +12,11 @@ export default function DrugCompareStudio() {
   useEffect(() => {
     const loadDrugs = async () => {
       try {
-        const nodes = await fetchNodes({ limit: 80 });
-        const drugNodes = nodes.filter(n => n.entity_type === 'Drug' || n.entity_type === 'Entity');
-        setDrugs(drugNodes.length > 0 ? drugNodes : nodes);
-        if (drugNodes.length > 1) {
-          setDrugAId(drugNodes[0].id);
-          setDrugBId(drugNodes[1].id);
+        const nodes = await fetchNodes({ limit: 100 });
+        setDrugs(nodes || []);
+        if (nodes && nodes.length > 0) {
+          setDrugAId(nodes[0].id);
+          setDrugBId(nodes.length > 1 ? nodes[1].id : nodes[0].id);
         }
       } catch (err) {
         console.error("Failed to load drugs", err);
@@ -27,8 +26,11 @@ export default function DrugCompareStudio() {
   }, []);
 
   const handleCompare = async (e) => {
-    e.preventDefault();
-    if (!drugAId || !drugBId) return;
+    if (e) e.preventDefault();
+    if (!drugAId || !drugBId) {
+      alert("Please select both Drug/Entity A and B to compare.");
+      return;
+    }
     setLoading(true);
     try {
       const res = await compareDrugs(drugAId, drugBId);
@@ -68,6 +70,7 @@ export default function DrugCompareStudio() {
               onChange={(e) => setDrugAId(e.target.value)}
               className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
             >
+              {drugs.length === 0 && <option value="">Loading entities...</option>}
               {drugs.map(d => (
                 <option key={d.id} value={d.id}>{d.canonical_name} ({d.entity_type})</option>
               ))}
@@ -81,6 +84,7 @@ export default function DrugCompareStudio() {
               onChange={(e) => setDrugBId(e.target.value)}
               className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
             >
+              {drugs.length === 0 && <option value="">Loading entities...</option>}
               {drugs.map(d => (
                 <option key={d.id} value={d.id}>{d.canonical_name} ({d.entity_type})</option>
               ))}
@@ -90,8 +94,9 @@ export default function DrugCompareStudio() {
           <div className="flex items-end">
             <button
               type="submit"
+              onClick={handleCompare}
               disabled={loading || !drugAId || !drugBId}
-              className="w-full glass-button flex items-center justify-center space-x-2 py-2.5 rounded-xl font-bold text-white bg-indigo-600/40 border border-indigo-500/50 hover:scale-105 transition"
+              className="w-full glass-button flex items-center justify-center space-x-2 py-2.5 rounded-xl font-bold text-white bg-indigo-600/40 border border-indigo-500/50 hover:scale-105 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <FaWandMagicSparkles className="w-4 h-4 text-amber-400" />
               <span>{loading ? 'Analyzing Synergy...' : 'Compare Head-to-Head'}</span>
