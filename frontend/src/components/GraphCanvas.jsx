@@ -13,9 +13,25 @@ import {
   FaDna,
   FaDisease,
   FaAtom,
-  FaFlask
+  FaFlask,
+  FaLightbulb,
+  FaGear
 } from 'react-icons/fa6';
 import { fetchNodes, fetchEdges } from '../services/api';
+
+const getNodeColor = (type) => {
+  switch (type) {
+    case 'Drug': return '#10b981';
+    case 'Gene': return '#3b82f6';
+    case 'Protein': return '#8b5cf6';
+    case 'Disease': return '#ef4444';
+    case 'Concept':
+    case 'Phenomenon': return '#f59e0b';
+    case 'Process':
+    case 'Mechanism': return '#14b8a6';
+    default: return '#6366f1';
+  }
+};
 
 export default function GraphCanvas({ onOpenCopilot, onRunSimulation }) {
   const containerRef = useRef(null);
@@ -44,6 +60,16 @@ export default function GraphCanvas({ onOpenCopilot, onRunSimulation }) {
       const nodesData = await fetchNodes({ limit: 500 });
       const edgesData = await fetchEdges({ limit: 1000 });
 
+      // Dynamically discover all unique entity types from database
+      const discoveredTypes = Array.from(new Set(nodesData.map(n => n.entity_type || 'Entity')));
+      setSelectedTypes(prev => {
+        const next = { ...prev };
+        discoveredTypes.forEach(t => {
+          if (next[t] === undefined) next[t] = true;
+        });
+        return next;
+      });
+
       // Build node ID set to filter out orphaned edges with non-existent source or target
       const validNodeIds = new Set(nodesData.map(n => n.id));
       const validEdges = edgesData.filter(
@@ -55,7 +81,7 @@ export default function GraphCanvas({ onOpenCopilot, onRunSimulation }) {
           data: {
             id: n.id,
             label: n.canonical_name,
-            type: n.entity_type
+            type: n.entity_type || 'Entity'
           }
         })),
         ...validEdges.map(e => ({
@@ -84,14 +110,7 @@ export default function GraphCanvas({ onOpenCopilot, onRunSimulation }) {
           {
             selector: 'node',
             style: {
-              'background-color': (ele) => {
-                const type = ele.data('type');
-                if (type === 'Drug') return '#10b981';
-                if (type === 'Gene') return '#3b82f6';
-                if (type === 'Protein') return '#8b5cf6';
-                if (type === 'Disease') return '#ef4444';
-                return '#6366f1';
-              },
+              'background-color': (ele) => getNodeColor(ele.data('type')),
               'label': 'data(label)',
               'color': '#f8fafc',
               'font-size': '11px',
@@ -188,7 +207,7 @@ export default function GraphCanvas({ onOpenCopilot, onRunSimulation }) {
     const cy = cyRef.current;
 
     cy.nodes().forEach(node => {
-      const type = node.data('type');
+      const type = node.data('type') || 'Entity';
       const label = node.data('label').toLowerCase();
 
       const typeMatch = selectedTypes[type] !== false;
@@ -243,6 +262,12 @@ export default function GraphCanvas({ onOpenCopilot, onRunSimulation }) {
         return "bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-sm shadow-purple-500/20 font-bold";
       case 'Disease':
         return "bg-red-500/20 text-red-300 border border-red-500/40 shadow-sm shadow-red-500/20 font-bold";
+      case 'Concept':
+      case 'Phenomenon':
+        return "bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm shadow-amber-500/20 font-bold";
+      case 'Process':
+      case 'Mechanism':
+        return "bg-teal-500/20 text-teal-300 border border-teal-500/40 shadow-sm shadow-teal-500/20 font-bold";
       default:
         return "bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 shadow-sm shadow-indigo-500/20 font-bold";
     }
@@ -254,6 +279,10 @@ export default function GraphCanvas({ onOpenCopilot, onRunSimulation }) {
       case 'Gene': return <FaDna className="w-3 h-3 text-blue-400" />;
       case 'Protein': return <FaAtom className="w-3 h-3 text-purple-400" />;
       case 'Disease': return <FaDisease className="w-3 h-3 text-red-400" />;
+      case 'Concept':
+      case 'Phenomenon': return <FaLightbulb className="w-3 h-3 text-amber-400" />;
+      case 'Process':
+      case 'Mechanism': return <FaGear className="w-3 h-3 text-teal-400" />;
       default: return <FaFlask className="w-3 h-3 text-indigo-400" />;
     }
   };
@@ -284,7 +313,7 @@ export default function GraphCanvas({ onOpenCopilot, onRunSimulation }) {
           />
         </div>
 
-        {/* Custom Styled Entity Type Chips */}
+        {/* Custom Styled Entity Type Chips (Dynamically Discovered) */}
         <div className="space-y-1.5">
           <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Entity Types</label>
           <div className="flex flex-wrap gap-1.5 pt-0.5">
