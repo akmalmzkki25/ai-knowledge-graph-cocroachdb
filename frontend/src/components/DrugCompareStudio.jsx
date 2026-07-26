@@ -32,9 +32,14 @@ export default function DrugCompareStudio() {
     setLoading(true);
     try {
       const res = await compareDrugs(drugAId, drugBId);
-      setResult(res);
+      if (res.error) {
+        alert(res.error);
+      } else {
+        setResult(res);
+      }
     } catch (err) {
       console.error("Drug compare error", err);
+      alert("Failed to run comparative analysis.");
     } finally {
       setLoading(false);
     }
@@ -105,7 +110,7 @@ export default function DrugCompareStudio() {
             </div>
             <div className="text-right">
               <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Synergy Score</div>
-              <div className="text-2xl font-extrabold text-emerald-400">{Math.round(result.synergy_score * 100)}%</div>
+              <div className="text-2xl font-extrabold text-emerald-400">{Math.round((result.synergy_score || 0) * 100)}%</div>
             </div>
           </div>
 
@@ -114,7 +119,7 @@ export default function DrugCompareStudio() {
             {/* Drug A Unique */}
             <div className="glass-panel p-4 rounded-xl border border-slate-800 space-y-3">
               <h4 className="font-bold text-indigo-400 flex items-center gap-2">
-                <FaFlask className="w-4 h-4" /> Unique to {result.drug_a?.name} ({result.unique_drug_a_targets?.length})
+                <FaFlask className="w-4 h-4" /> Unique to {result.drug_a?.name} ({result.unique_drug_a_targets?.length || 0})
               </h4>
               <div className="space-y-2">
                 {result.unique_drug_a_targets?.map(t => (
@@ -132,7 +137,7 @@ export default function DrugCompareStudio() {
             {/* Shared Targets */}
             <div className="glass-panel p-4 rounded-xl border border-amber-500/30 space-y-3 bg-amber-950/10">
               <h4 className="font-bold text-amber-400 flex items-center gap-2">
-                <FaHandshake className="w-4 h-4" /> Shared Overlap Targets ({result.shared_targets?.length})
+                <FaHandshake className="w-4 h-4" /> Shared Overlap Targets ({result.shared_targets?.length || 0})
               </h4>
               <div className="space-y-2">
                 {result.shared_targets?.map(t => (
@@ -150,7 +155,7 @@ export default function DrugCompareStudio() {
             {/* Drug B Unique */}
             <div className="glass-panel p-4 rounded-xl border border-slate-800 space-y-3">
               <h4 className="font-bold text-purple-400 flex items-center gap-2">
-                <FaFlask className="w-4 h-4" /> Unique to {result.drug_b?.name} ({result.unique_drug_b_targets?.length})
+                <FaFlask className="w-4 h-4" /> Unique to {result.drug_b?.name} ({result.unique_drug_b_targets?.length || 0})
               </h4>
               <div className="space-y-2">
                 {result.unique_drug_b_targets?.map(t => (

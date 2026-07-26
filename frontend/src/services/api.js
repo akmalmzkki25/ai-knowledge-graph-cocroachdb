@@ -100,14 +100,15 @@ export const fetchContradictions = async () => {
 };
 
 export const compareDrugs = async (drugAId, drugBId) => {
-  const response = await apiClient.get('/analytics/compare', {
-    params: { drug_a_id: drugAId, drug_b_id: drugBId }
+  const response = await apiClient.post('/compare/drugs', {
+    drug_a_id: drugAId,
+    drug_b_id: drugBId
   });
   return response.data;
 };
 
 export const generateExecutiveReport = async () => {
-  const response = await apiClient.post('/analytics/report');
+  const response = await apiClient.post('/report/generate');
   return response.data;
 };
 

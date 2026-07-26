@@ -14,7 +14,7 @@ class ExecutiveReportService:
         edges = db.query(Edge).limit(40).all()
 
         doc_titles = [d.title for d in docs]
-        hypo_summaries = [f"{h.hypothesis_title}: {h.description[:100]}..." for h in hypotheses]
+        hypo_summaries = [f"{h.title}: {h.summary[:100]}..." for h in hypotheses]
         relations_context = [
             f"{e.source_node.canonical_name if e.source_node else 'N/A'} {e.predicate} {e.target_node.canonical_name if e.target_node else 'N/A'} (Confidence: {e.confidence_score})"
             for e in edges
