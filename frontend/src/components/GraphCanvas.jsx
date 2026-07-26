@@ -15,7 +15,9 @@ import {
   FaAtom,
   FaFlask,
   FaLightbulb,
-  FaGear
+  FaGear,
+  FaChevronDown,
+  FaChevronUp
 } from 'react-icons/fa6';
 import { fetchNodes, fetchEdges } from '../services/api';
 
@@ -38,6 +40,7 @@ export default function GraphCanvas({ onOpenCopilot, onRunSimulation }) {
   const cyRef = useRef(null);
   const [selectedElement, setSelectedElement] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [isFilterCollapsed, setIsFilterCollapsed] = useState(false);
 
   // Filter State
   const [searchTerm, setSearchTerm] = useState('');
@@ -289,70 +292,90 @@ export default function GraphCanvas({ onOpenCopilot, onRunSimulation }) {
 
   return (
     <div className="relative w-full h-[calc(100vh-120px)] bg-slate-950 overflow-hidden">
-      {/* Floating Filter Control Bar */}
-      <div className="absolute top-4 left-4 z-20 glass-panel p-3.5 rounded-2xl border border-slate-800/80 space-y-3.5 text-xs w-84 shadow-2xl bg-slate-950/95 backdrop-blur-xl">
-        <div className="flex items-center justify-between">
+      {/* Floating Compact Left Filter Control Panel */}
+      <div className="absolute top-4 left-4 z-20 glass-panel p-3.5 rounded-2xl border border-slate-800/80 space-y-3 text-xs w-80 shadow-2xl bg-slate-950/95 backdrop-blur-xl">
+        <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
           <div className="flex items-center space-x-2 font-bold text-indigo-300">
             <FaSliders className="w-4 h-4 text-indigo-400" />
             <span>Interactive Graph Filters</span>
           </div>
-          <button onClick={loadGraphData} className="p-1 text-slate-400 hover:text-slate-200">
-            <FaRotate className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          </button>
-        </div>
-
-        {/* Search */}
-        <div className="relative">
-          <FaMagnifyingGlass className="w-3 h-3 absolute left-3 top-2.5 text-slate-500" />
-          <input
-            type="text"
-            placeholder="Search entities or relations..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-slate-900/90 border border-slate-800 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
-          />
-        </div>
-
-        {/* Custom Styled Entity Type Chips (Dynamically Discovered) */}
-        <div className="space-y-1.5">
-          <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Entity Types</label>
-          <div className="flex flex-wrap gap-1.5 pt-0.5">
-            {Object.keys(selectedTypes).map(type => {
-              const isChecked = selectedTypes[type];
-              return (
-                <button
-                  key={type}
-                  type="button"
-                  onClick={() => toggleType(type)}
-                  className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-xl text-[11px] transition-all duration-150 select-none ${getTypeBadgeStyle(type, isChecked)}`}
-                >
-                  <span className="flex items-center space-x-1">
-                    {getTypeIcon(type)}
-                    <span>{type}</span>
-                  </span>
-                  {isChecked && <FaCheck className="w-2.5 h-2.5 ml-0.5 text-slate-200" />}
-                </button>
-              );
-            })}
+          <div className="flex items-center space-x-1">
+            <button 
+              onClick={() => setIsFilterCollapsed(!isFilterCollapsed)} 
+              className="p-1 text-slate-400 hover:text-slate-200"
+              title={isFilterCollapsed ? "Expand Filters" : "Collapse Filters"}
+            >
+              {isFilterCollapsed ? <FaChevronDown className="w-3.5 h-3.5" /> : <FaChevronUp className="w-3.5 h-3.5" />}
+            </button>
+            <button 
+              onClick={loadGraphData} 
+              className="p-1 text-slate-400 hover:text-slate-200"
+              title="Refresh Graph"
+            >
+              <FaRotate className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+            </button>
           </div>
         </div>
 
-        {/* Confidence Threshold Slider */}
-        <div className="space-y-1.5">
-          <div className="flex justify-between text-[10px] text-slate-400 font-semibold">
-            <span>Min Confidence Threshold:</span>
-            <span className="text-amber-400 font-bold text-xs">{Math.round(confidenceThreshold * 100)}%</span>
-          </div>
-          <input
-            type="range"
-            min="0"
-            max="1"
-            step="0.05"
-            value={confidenceThreshold}
-            onChange={(e) => setConfidenceThreshold(parseFloat(e.target.value))}
-            className="w-full h-1.5 bg-slate-900 rounded-lg appearance-none cursor-pointer accent-indigo-500"
-          />
-        </div>
+        {!isFilterCollapsed && (
+          <>
+            {/* Search */}
+            <div className="relative">
+              <FaMagnifyingGlass className="w-3 h-3 absolute left-3 top-2.5 text-slate-500" />
+              <input
+                type="text"
+                placeholder="Search entities or relations..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full bg-slate-900/90 border border-slate-800 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+
+            {/* Scrollable Compact Entity Type Chips */}
+            <div className="space-y-1.5">
+              <div className="flex justify-between items-center text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                <span>Entity Types</span>
+                <span className="text-slate-500 font-normal">({Object.keys(selectedTypes).length} types)</span>
+              </div>
+              <div className="max-h-36 overflow-y-auto border border-slate-800/80 p-2 rounded-xl bg-slate-900/60 flex flex-wrap gap-1.5 custom-scrollbar">
+                {Object.keys(selectedTypes).map(type => {
+                  const isChecked = selectedTypes[type];
+                  return (
+                    <button
+                      key={type}
+                      type="button"
+                      onClick={() => toggleType(type)}
+                      className={`flex items-center space-x-1 px-2 py-0.5 rounded-lg text-[10px] transition-all duration-150 select-none ${getTypeBadgeStyle(type, isChecked)}`}
+                    >
+                      <span className="flex items-center space-x-1">
+                        {getTypeIcon(type)}
+                        <span>{type}</span>
+                      </span>
+                      {isChecked && <FaCheck className="w-2 h-2 ml-0.5 text-slate-200" />}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Confidence Threshold Slider */}
+            <div className="space-y-1.5 pt-1">
+              <div className="flex justify-between text-[10px] text-slate-400 font-semibold">
+                <span>Min Confidence Threshold:</span>
+                <span className="text-amber-400 font-bold text-xs">{Math.round(confidenceThreshold * 100)}%</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.05"
+                value={confidenceThreshold}
+                onChange={(e) => setConfidenceThreshold(parseFloat(e.target.value))}
+                className="w-full h-1.5 bg-slate-900 rounded-lg appearance-none cursor-pointer accent-indigo-500"
+              />
+            </div>
+          </>
+        )}
       </div>
 
       {/* Cytoscape Container */}
