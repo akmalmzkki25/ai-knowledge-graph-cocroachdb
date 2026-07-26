@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Zap, Play, ArrowDownRight, Layers } from 'lucide-react';
+import { Zap, Play, ArrowDownRight } from 'lucide-react';
 import { fetchNodes, simulateKnockout } from '../services/api';
 
 export default function CounterfactualStudio() {
@@ -12,7 +12,7 @@ export default function CounterfactualStudio() {
   useEffect(() => {
     const loadNodes = async () => {
       try {
-        const data = await fetchNodes({ limit: 50 });
+        const data = await fetchNodes({ limit: 500 });
         setNodes(data);
         if (data.length > 0) setSelectedNodeId(data[0].id);
       } catch (err) {
@@ -35,6 +35,9 @@ export default function CounterfactualStudio() {
       setLoading(false);
     }
   };
+
+  const cascadeList = simulationResult?.cascading_effects || simulationResult?.cascade || [];
+  const totalAffected = simulationResult?.total_downstream_impacted ?? simulationResult?.total_affected_nodes ?? cascadeList.length;
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-6">
@@ -96,7 +99,7 @@ export default function CounterfactualStudio() {
             <span>Cascade Results</span>
             {simulationResult && (
               <span className="text-xs text-amber-400 font-normal">
-                {simulationResult.total_affected_nodes} Downstream Entities Affected
+                {totalAffected} Downstream Entities Affected
               </span>
             )}
           </h3>
@@ -105,22 +108,28 @@ export default function CounterfactualStudio() {
             <div className="text-center py-16 text-slate-500 text-xs border border-dashed border-slate-800 rounded-xl">
               Select an entity and run a simulation to view downstream impact paths.
             </div>
-          ) : simulationResult.cascade.length === 0 ? (
+          ) : cascadeList.length === 0 ? (
             <div className="text-center py-12 text-slate-400 text-xs">
               No downstream outgoing causal edges found for this entity.
             </div>
           ) : (
             <div className="space-y-3 max-h-[450px] overflow-y-auto pr-2">
-              {simulationResult.cascade.map((c, idx) => (
+              {cascadeList.map((c, idx) => (
                 <div key={idx} className="bg-slate-900/80 border border-slate-800 p-4 rounded-xl flex items-center justify-between text-xs">
                   <div className="flex items-center space-x-3">
-                    <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold">Hop {c.depth}</span>
-                    <span className="font-semibold text-slate-200">{c.source_name}</span>
+                    <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold">Hop {c.depth_level || c.depth || 1}</span>
+                    <span className="font-semibold text-slate-200">{c.node_name || c.source_name || 'Entity'}</span>
                     <span className="text-indigo-400 font-bold">[{c.predicate}]</span>
                     <ArrowDownRight className="w-4 h-4 text-slate-500" />
-                    <span className="font-semibold text-emerald-400">{c.target_name}</span>
+                    <span className={`font-bold ${c.net_impact_sign < 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+                      {c.predicted_status}
+                    </span>
                   </div>
-                  <span className="text-slate-500">Confidence: {c.confidence * 100}%</span>
+                  {c.confidence_score && (
+                    <span className="text-slate-400 text-[11px] font-medium">
+                      {Math.round(c.confidence_score * 100)}% Confidence
+                    </span>
+                  )}
                 </div>
               ))}
             </div>
