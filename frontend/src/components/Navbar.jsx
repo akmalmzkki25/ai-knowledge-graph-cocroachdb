@@ -16,9 +16,10 @@ import {
   FaFilePdf,
   FaUserGear,
   FaRightFromBracket,
-  FaUserCheck,
-  FaUser
+  FaTrash,
+  FaFileLines
 } from 'react-icons/fa6';
+import { resetGraphData } from '../services/api';
 
 export default function Navbar({ 
   activeTab, 
@@ -26,12 +27,14 @@ export default function Navbar({
   onOpenIngestModal, 
   onOpenExportModal, 
   onOpenReportModal,
+  onOpenManageSourcesModal,
   onToggleCopilot, 
   showPathWorkbench,
   setShowPathWorkbench,
   healthStatus,
   currentUser,
-  onLogout
+  onLogout,
+  onDataReset
 }) {
   const [openSubMenu, setOpenSubMenu] = useState(null); // 'visualizers' | 'analytics' | 'user' | null
   const subMenuRef = useRef(null);
@@ -51,8 +54,22 @@ export default function Navbar({
     setOpenSubMenu(null);
   };
 
+  const handleResetData = async () => {
+    if (!window.confirm("⚠️ WARNING: Are you sure you want to RESET ALL KNOWLEDGE GRAPH DATA? This will delete ALL nodes, edges, and imported documents permanently and start again from 0!")) {
+      return;
+    }
+    try {
+      await resetGraphData();
+      alert("✅ Knowledge Graph data has been completely reset to 0.");
+      setOpenSubMenu(null);
+      if (onDataReset) onDataReset();
+    } catch (err) {
+      alert("Failed to reset graph data: " + (err.response?.data?.detail || err.message));
+    }
+  };
+
   const isVisualizerActive = ['graph', 'graph3d', 'matrix'].includes(activeTab);
-  const isAnalyticsActive = ['hypotheses', 'simulation', 'lint', 'compare', 'users'].includes(activeTab);
+  const isAnalyticsActive = ['hypotheses', 'simulation', 'lint', 'compare'].includes(activeTab);
 
   return (
     <header className="glass-panel sticky top-0 z-40 px-5 py-2 border-b border-slate-800/80 flex items-center justify-between shadow-xl bg-slate-950/90 backdrop-blur-xl h-14">
@@ -135,7 +152,7 @@ export default function Navbar({
           >
             <FaLightbulb className="w-3.5 h-3.5 text-amber-400" />
             <span>
-              {activeTab === 'simulation' ? 'Simulation' : activeTab === 'compare' ? 'Drug Compare' : activeTab === 'users' ? 'Users' : activeTab === 'lint' ? 'Health Audit' : 'AI Hypotheses'}
+              {activeTab === 'simulation' ? 'Simulation' : activeTab === 'compare' ? 'Drug Compare' : activeTab === 'lint' ? 'Health Audit' : 'AI Hypotheses'}
             </span>
             <FaChevronDown className={`w-2.5 h-2.5 transition-transform ${openSubMenu === 'analytics' ? 'rotate-180 text-purple-300' : ''}`} />
           </button>
@@ -181,18 +198,6 @@ export default function Navbar({
                 <FaShieldHalved className="w-3.5 h-3.5 text-red-400" />
                 <span>Graph Health Audit</span>
               </button>
-
-              {currentUser?.role === 'superadmin' && (
-                <button
-                  onClick={() => handleSelectTab('users')}
-                  className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl text-xs font-medium transition border-t border-slate-800 mt-1 ${
-                    activeTab === 'users' ? 'bg-amber-600/40 text-amber-200' : 'text-amber-300 hover:bg-slate-900'
-                  }`}
-                >
-                  <FaUserGear className="w-3.5 h-3.5 text-amber-400" />
-                  <span>User Management</span>
-                </button>
-              )}
             </div>
           )}
         </div>
@@ -232,7 +237,7 @@ export default function Navbar({
           <span>Ingest</span>
         </button>
 
-        {/* User Account & Actions Menu Dropdown */}
+        {/* User Account & Superadmin Actions Menu Dropdown */}
         <div className="relative">
           <button
             onClick={() => setOpenSubMenu(openSubMenu === 'user' ? null : 'user')}
@@ -246,19 +251,44 @@ export default function Navbar({
           </button>
 
           {openSubMenu === 'user' && (
-            <div className="absolute top-full right-0 mt-2 w-56 glass-panel border border-slate-800 rounded-2xl shadow-2xl p-2 z-50 space-y-1 bg-slate-950/95 backdrop-blur-xl text-xs">
+            <div className="absolute top-full right-0 mt-2 w-60 glass-panel border border-slate-800 rounded-2xl shadow-2xl p-2 z-50 space-y-1 bg-slate-950/95 backdrop-blur-xl text-xs">
               <div className="p-2 border-b border-slate-800 space-y-0.5">
                 <div className="font-bold text-slate-200">{currentUser?.username}</div>
                 <div className="text-[10px] text-indigo-400 font-bold uppercase">{currentUser?.role}</div>
               </div>
 
-              {/* DB Status Badge inside Menu */}
+              {/* DB Status Badge */}
               <div className="p-2 flex items-center justify-between text-[11px] text-slate-400">
                 <span className="flex items-center gap-1.5"><FaDatabase className="w-3 h-3 text-indigo-400" /> Database</span>
                 <span className={healthStatus?.cockroach === 'connected' || healthStatus?.postgres === 'connected' ? 'text-emerald-400 font-bold' : 'text-amber-400 font-bold'}>
                   {healthStatus?.cockroach === 'connected' ? 'CockroachDB' : healthStatus?.postgres === 'connected' ? 'PostgreSQL' : 'Checking...'}
                 </span>
               </div>
+
+              {/* User Management Studio (Moved to Superadmin Dropdown) */}
+              {currentUser?.role === 'superadmin' && (
+                <button
+                  onClick={() => handleSelectTab('users')}
+                  className={`w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl font-medium transition text-left ${
+                    activeTab === 'users' ? 'bg-amber-600/40 text-amber-200 font-bold' : 'text-amber-300 hover:bg-slate-900'
+                  }`}
+                >
+                  <FaUserGear className="w-3.5 h-3.5 text-amber-400" />
+                  <span>User Management Studio</span>
+                </button>
+              )}
+
+              {/* Manage & Delete Ingested Documents */}
+              <button
+                onClick={() => {
+                  onOpenManageSourcesModal && onOpenManageSourcesModal();
+                  setOpenSubMenu(null);
+                }}
+                className="w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl text-slate-300 hover:bg-slate-900 transition text-left"
+              >
+                <FaFileLines className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Manage Ingested Documents</span>
+              </button>
 
               <button
                 onClick={() => {
@@ -282,13 +312,26 @@ export default function Navbar({
                 <span>Export Graph Data</span>
               </button>
 
+              {/* Superadmin Data Reset Button */}
+              {currentUser?.role === 'superadmin' && (
+                <div className="border-t border-slate-800 pt-1">
+                  <button
+                    onClick={handleResetData}
+                    className="w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl text-red-400 hover:bg-red-950/40 transition text-left font-bold"
+                  >
+                    <FaTrash className="w-3.5 h-3.5 text-red-400" />
+                    <span>Reset All Data (Start 0)</span>
+                  </button>
+                </div>
+              )}
+
               <div className="border-t border-slate-800 pt-1">
                 <button
                   onClick={() => {
                     onLogout();
                     setOpenSubMenu(null);
                   }}
-                  className="w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl text-red-400 hover:bg-red-950/40 transition text-left font-bold"
+                  className="w-full flex items-center space-x-2.5 px-3 py-2 rounded-xl text-slate-400 hover:bg-slate-900 transition text-left font-semibold"
                 >
                   <FaRightFromBracket className="w-3.5 h-3.5" />
                   <span>Sign Out</span>

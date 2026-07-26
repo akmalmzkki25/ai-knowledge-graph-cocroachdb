@@ -74,6 +74,21 @@ export const ingestPdfDocument = async (formData) => {
   return response.data;
 };
 
+export const fetchSources = async () => {
+  const response = await apiClient.get('/ingest/sources');
+  return response.data;
+};
+
+export const deleteSource = async (sourceId) => {
+  const response = await apiClient.delete(`/ingest/sources/${sourceId}`);
+  return response.data;
+};
+
+export const resetGraphData = async () => {
+  const response = await apiClient.delete('/ingest/reset');
+  return response.data;
+};
+
 export const fetchHypotheses = async () => {
   const response = await apiClient.get('/hypotheses');
   return response.data;
@@ -81,6 +96,18 @@ export const fetchHypotheses = async () => {
 
 export const fetchContradictions = async () => {
   const response = await apiClient.get('/lint/contradictions');
+  return response.data;
+};
+
+export const compareDrugs = async (drugAId, drugBId) => {
+  const response = await apiClient.get('/analytics/compare', {
+    params: { drug_a_id: drugAId, drug_b_id: drugBId }
+  });
+  return response.data;
+};
+
+export const generateExecutiveReport = async () => {
+  const response = await apiClient.post('/analytics/report');
   return response.data;
 };
 
@@ -98,18 +125,5 @@ export const fetchAnalytics = async () => {
 
 export const askCopilot = async (queryText) => {
   const response = await apiClient.post('/copilot/chat', { query: queryText });
-  return response.data;
-};
-
-export const generateExecutiveReport = async () => {
-  const response = await apiClient.post('/report/generate');
-  return response.data;
-};
-
-export const compareDrugs = async (drugAId, drugBId) => {
-  const response = await apiClient.post('/compare/drugs', {
-    drug_a_id: drugAId,
-    drug_b_id: drugBId
-  });
   return response.data;
 };

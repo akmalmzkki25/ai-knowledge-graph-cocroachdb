@@ -13,6 +13,7 @@ import LoginScreen from './components/LoginScreen';
 import IngestModal from './components/IngestModal';
 import ExportModal from './components/ExportModal';
 import ReportModal from './components/ReportModal';
+import ManageSourcesModal from './components/ManageSourcesModal';
 import CopilotDrawer from './components/CopilotDrawer';
 import PathFinderWorkbench from './components/PathFinderWorkbench';
 import { checkHealth, fetchCurrentUser } from './services/api';
@@ -25,6 +26,7 @@ export default function App() {
   const [isIngestOpen, setIsIngestOpen] = useState(false);
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
+  const [isManageSourcesOpen, setIsManageSourcesOpen] = useState(false);
   const [isCopilotOpen, setIsCopilotOpen] = useState(false);
   const [healthStatus, setHealthStatus] = useState(null);
 
@@ -82,12 +84,14 @@ export default function App() {
         onOpenIngestModal={() => setIsIngestOpen(true)}
         onOpenExportModal={() => setIsExportOpen(true)}
         onOpenReportModal={() => setIsReportOpen(true)}
+        onOpenManageSourcesModal={() => setIsManageSourcesOpen(true)}
         onToggleCopilot={() => setIsCopilotOpen(!isCopilotOpen)}
         showPathWorkbench={showPathWorkbench}
         setShowPathWorkbench={setShowPathWorkbench}
         healthStatus={healthStatus}
         currentUser={currentUser}
         onLogout={handleLogout}
+        onDataReset={() => window.location.reload()}
       />
 
       <AnalyticsDashboard />
@@ -125,6 +129,7 @@ export default function App() {
         onClose={() => setIsIngestOpen(false)}
         onIngestSuccess={(result) => {
           alert(`Successfully extracted ${result.triplets.length} causal triplets!`);
+          window.location.reload();
         }}
       />
 
@@ -136,6 +141,12 @@ export default function App() {
       <ReportModal
         isOpen={isReportOpen}
         onClose={() => setIsReportOpen(false)}
+      />
+
+      <ManageSourcesModal
+        isOpen={isManageSourcesOpen}
+        onClose={() => setIsManageSourcesOpen(false)}
+        onDataChanged={() => window.location.reload()}
       />
     </div>
   );

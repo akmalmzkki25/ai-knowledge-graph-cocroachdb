@@ -6,7 +6,7 @@ from app.schemas.graph import TextIngestRequest, ExtractionResult, CausalTriplet
 from app.services.bedrock_service import bedrock_service
 from app.services.pdf_service import pdf_service
 from app.services.entity_resolver import entity_resolver
-from app.models.graph import SourceDocument, Edge, AuditLog, User
+from app.models.graph import SourceDocument, Edge, Node, AuditLog, User
 from app.core.security import get_current_user
 
 router = APIRouter()
@@ -100,29 +100,27 @@ def ingest_text_document(
 
 
 @router.post("/pdf", response_model=ExtractionResult)
+
 async def ingest_pdf_document(
     file: UploadFile = File(...),
+    title: str = Form(None),
     authors: str = Form(None),
     doi: str = Form(None),
     db: Session = Depends(get_cockroach_db),
     current_user: User = Depends(get_current_user)
 ):
-    pdf_bytes = await file.read()
-    parsed_pdf = pdf_service.parse_pdf_bytes(pdf_bytes, filename=file.filename)
-    
-    clean_content = clean_nul(parsed_pdf["full_text"])
-    clean_title = clean_nul(parsed_pdf["title"])
+    if not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Only PDF files are accepted."
+        )
+
+    file_bytes = await file.read()
+    file_hash = hashlib.sha256(file_bytes).hexdigest()
+    clean_title = clean_nul(title or file.filename)
     clean_authors = clean_nul(authors) if authors else None
     clean_doi = clean_nul(doi) if doi else None
 
-    if not clean_content:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Could not extract readable text from the provided PDF file."
-        )
-
-    file_hash = hashlib.sha256(pdf_bytes).hexdigest()
-    
     source_doc = db.query(SourceDocument).filter(
         SourceDocument.file_hash == file_hash,
         SourceDocument.user_id == current_user.id
@@ -134,15 +132,22 @@ async def ingest_pdf_document(
             authors=clean_authors,
             doi=clean_doi,
             file_hash=file_hash,
-            raw_content=clean_content,
-            user_id=current_user.id,
-            metadata_json={"total_pages": parsed_pdf["total_pages"]}
+            raw_content=f"PDF File: {file.filename}",
+            user_id=current_user.id
         )
         db.add(source_doc)
         db.commit()
         db.refresh(source_doc)
 
-    text_chunks = pdf_service.create_sliding_window_chunks(clean_content, chunk_size=4000, overlap=500)
+    try:
+        pdf_text = pdf_service.extract_text_from_pdf(file_bytes)
+        text_chunks = pdf_service.chunk_text(pdf_text, chunk_size=3000, overlap=300)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"PDF Parsing Failed: {str(e)}"
+        )
+
     all_extracted_triplets = []
 
     for i, chunk in enumerate(text_chunks[:5]):
@@ -196,3 +201,54 @@ async def ingest_pdf_document(
     db.commit()
 
     return ExtractionResult(triplets=all_extracted_triplets, source_title=clean_title)
+
+
+@router.get("/sources")
+def list_ingested_sources(
+    db: Session = Depends(get_cockroach_db),
+    current_user: User = Depends(get_current_user)
+):
+    sources = db.query(SourceDocument).order_by(SourceDocument.created_at.desc()).all()
+    result = []
+    for s in sources:
+        edge_count = db.query(Edge).filter(Edge.source_document_id == s.id).count()
+        result.append({
+            "id": str(s.id),
+            "title": s.title,
+            "authors": s.authors,
+            "doi": s.doi,
+            "created_at": s.created_at.isoformat() if s.created_at else None,
+            "edge_count": edge_count
+        })
+    return result
+
+
+@router.delete("/sources/{source_id}")
+def delete_ingested_source(
+    source_id: str,
+    db: Session = Depends(get_cockroach_db),
+    current_user: User = Depends(get_current_user)
+):
+    source_doc = db.query(SourceDocument).filter(SourceDocument.id == source_id).first()
+    if not source_doc:
+        raise HTTPException(status_code=404, detail="Source document not found")
+
+    db.query(Edge).filter(Edge.source_document_id == source_id).delete(synchronize_session=False)
+    db.delete(source_doc)
+    db.commit()
+    return {"message": f"Successfully deleted document '{source_doc.title}' and associated edges."}
+
+
+@router.delete("/reset")
+def reset_all_knowledge_graph_data(
+    db: Session = Depends(get_cockroach_db),
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role != 'superadmin':
+        raise HTTPException(status_code=403, detail="Only superadmin can reset graph data")
+
+    db.query(Edge).delete(synchronize_session=False)
+    db.query(Node).delete(synchronize_session=False)
+    db.query(SourceDocument).delete(synchronize_session=False)
+    db.commit()
+    return {"message": "All Knowledge Graph data, nodes, edges, and sources have been completely reset to 0."}
