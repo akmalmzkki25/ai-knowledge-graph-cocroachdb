@@ -88,11 +88,11 @@ def discover_causal_path(
     paths = []
     for row in result:
         paths.append(PathDiscoveryResponse(
-            source_node_id=str(row.source_node_id),
-            target_node_id=str(row.target_node_id),
-            predicate=row.predicate,
-            confidence_score=row.confidence_score,
-            depth=row.depth
+            start_entity=start_node.canonical_name,
+            target_entity=target_node.canonical_name,
+            path_node_ids=list(row.path_nodes),
+            hops=row.depth,
+            confidence_score=row.confidence_score
         ))
 
     return paths
