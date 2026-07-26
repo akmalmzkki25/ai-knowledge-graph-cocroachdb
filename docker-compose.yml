@@ -1,15 +1,4 @@
 services:
-  cockroachdb:
-    image: cockroachdb/cockroach:latest
-    container_name: cockroachdb
-    restart: always
-    command: start-single-node --insecure
-    ports:
-      - "26257:26257"
-      - "8080:8080"
-    volumes:
-      - cockroach_data:/cockroach/cockroach-data
-
   backend:
     build:
       context: ./backend
@@ -22,8 +11,6 @@ services:
       - IS_DOCKER=true
     env_file:
       - ./backend/.env
-    depends_on:
-      - cockroachdb
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
@@ -43,6 +30,3 @@ services:
       - backend
     extra_hosts:
       - "host.docker.internal:host-gateway"
-
-volumes:
-  cockroach_data:
