@@ -26,7 +26,7 @@ class PDFParsingService:
                 
         full_text = "\n\n".join(extracted_pages)
         
-        title = filename.replace(".pdf", "").replace("_", " ").replace("-", " ").title()
+        title = filename.replace(".pdf", "").replace("_", " ").replace("-", " ").title() if filename else "Untitled Document"
         if extracted_pages:
             first_lines = [line.strip() for line in extracted_pages[0].split("\n") if len(line.strip()) > 5]
             if first_lines:
@@ -40,10 +40,15 @@ class PDFParsingService:
         }
 
     @classmethod
+    def extract_text_from_pdf(cls, pdf_bytes: bytes) -> str:
+        res = cls.parse_pdf_bytes(pdf_bytes)
+        return res.get("full_text", "")
+
+    @classmethod
     def create_sliding_window_chunks(cls, full_text: str, chunk_size: int = 4000, overlap: int = 500) -> List[str]:
         cleaned = cls.clean_null_bytes(full_text)
         if len(cleaned) <= chunk_size:
-            return [cleaned]
+            return [cleaned] if cleaned else []
 
         chunks = []
         start = 0
@@ -53,5 +58,9 @@ class PDFParsingService:
             chunks.append(chunk)
             start += (chunk_size - overlap)
         return chunks
+
+    @classmethod
+    def chunk_text(cls, full_text: str, chunk_size: int = 4000, overlap: int = 500) -> List[str]:
+        return cls.create_sliding_window_chunks(full_text, chunk_size=chunk_size, overlap=overlap)
 
 pdf_service = PDFParsingService()
