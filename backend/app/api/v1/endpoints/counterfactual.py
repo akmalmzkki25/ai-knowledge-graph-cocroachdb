@@ -11,4 +11,4 @@ def simulate_gene_knockout(
     max_depth: int = Query(3, le=5),
     db: Session = Depends(get_cockroach_db)
 ):
-    return counterfactual_engine.simulate_knockout(db, node_id=node_id, max_depth=max_depth)
+    return counterfactual_engine.simulate_knockout(db, target_node_id=node_id, max_depth=max_depth)
