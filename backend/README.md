@@ -1,4 +1,4 @@
-# MahvaBridge Backend API
+# Backend API
 
 FastAPI backend service powering the **Dynamic Causal Discovery & Hypothesis Graph System** with CockroachDB, PostgreSQL, Redis, and AWS Bedrock (GLM 5.2).
 
